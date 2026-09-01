@@ -1,0 +1,71 @@
+{
+  "name": "busybar-kit",
+  "version": "0.1.0",
+  "description": "Shared building blocks for BUSY Bar apps: device geometry, colours, formatters, ticker text, error taxonomy and an offline PNG preview renderer",
+  "author": "viirtualp1",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./colors": "./dist/colors.js",
+    "./config": "./dist/config/index.js",
+    "./device": "./dist/device.js",
+    "./elements": "./dist/elements.js",
+    "./errors": "./dist/errors.js",
+    "./format": "./dist/format.js",
+    "./preview": "./dist/preview/index.js",
+    "./ticker": "./dist/ticker/index.js",
+    "./tsconfig.json": "./configs/tsconfig.base.json",
+    "./eslint": "./configs/eslint.config.js",
+    "./prettier": "./configs/prettier.json",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "busybar-fix-esm": "scripts/fix-esm-extensions.mjs"
+  },
+  "files": [
+    "dist",
+    "configs",
+    "scripts",
+    "README.md"
+  ],
+  "keywords": [
+    "busy-bar",
+    "busybar",
+    "led",
+    "pixel",
+    "preview"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/fix-esm-extensions.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run check && npm run build"
+  },
+  "peerDependencies": {
+    "@busy-app/busy-lib": "^0.18.0"
+  },
+  "devDependencies": {
+    "@busy-app/busy-lib": "^0.18.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0"
+  }
+}
