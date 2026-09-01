@@ -5,6 +5,10 @@
   "author": "viirtualp1",
   "license": "MIT",
   "type": "module",
+  "repository": { 
+    "type": "git", 
+    "url": "git+https://github.com/viirtualp1/busybar-kit.git" 
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
