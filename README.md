@@ -17,18 +17,18 @@ npm install busybar-kit
 
 ## What is in it
 
-| Import                                                                    | What it gives you                                                                                  |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `busybar-kit/device`                                                      | `FRONT` / `BACK` screen sizes, `FONT_WIDTH`, `clipToWidth`, `fittingChars`, `rowY`                 |
-| `busybar-kit/colors`                                                      | `BASE_COLORS` — neutrals, chrome, and the transparent value that hides an element                  |
-| `busybar-kit/format`                                                      | `formatClock`, `formatGold`, `formatCountdown`, `formatStartTime`, `formatKda`, `formatPercent`, … |
-| `busybar-kit/elements`                                                    | `AnyElement`, `band()`, `fillWidth()`                                                              |
-| `busybar-kit/ticker`                                                      | `paginate` / `pageAt` / `scrollAt` / `tickerLine`, and `EventTicker`                               |
-| `busybar-kit/errors`                                                      | `BarApiError`, `toBarError`, `isLowPriority`, `isClientError`, `isForbidden`                       |
-| `busybar-kit/config`                                                      | `loadEnvFile`, `envReader`, `loadBarConfig`                                                        |
-| `busybar-kit/preview`                                                     | `renderFront` / `renderBack` / `Bitmap` — device-accurate PNGs with no hardware                    |
-| `busybar-kit/tsconfig.json`, `busybar-kit/eslint`, `busybar-kit/prettier` | the shared toolchain                                                                               |
-| `busybar-fix-esm` (bin)                                                   | rewrites relative imports in `dist/` to carry `.js`, for Node ESM                                  |
+| Import                                                                    | What it gives you                                                                                              |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `busybar-kit/device`                                                      | `FRONT` / `BACK` screen sizes, `FONT_WIDTH`, `textWidth`, `clipToWidth`, `fittingChars`, `rowY`, `backRowGrid` |
+| `busybar-kit/colors`                                                      | `BASE_COLORS` — neutrals, chrome, and the transparent value that hides an element                              |
+| `busybar-kit/format`                                                      | `formatClock`, `formatGold`, `formatCountdown`, `formatStartTime`, `formatKda`, `formatPercent`, …             |
+| `busybar-kit/elements`                                                    | `AnyElement`, `band()`, `fillWidth()`                                                                          |
+| `busybar-kit/ticker`                                                      | `paginate` / `pageAt` / `scrollAt` / `tickerLine`, and `EventTicker`                                           |
+| `busybar-kit/errors`                                                      | `BarApiError`, `toBarError`, `isLowPriority`, `isClientError`, `isForbidden`                                   |
+| `busybar-kit/config`                                                      | `loadEnvFile`, `envReader`, `loadBarConfig`                                                                    |
+| `busybar-kit/preview`                                                     | `renderFront` / `renderBack` / `Bitmap` — device-accurate PNGs with no hardware                                |
+| `busybar-kit/tsconfig.json`, `busybar-kit/eslint`, `busybar-kit/prettier` | the shared toolchain                                                                                           |
+| `busybar-fix-esm` (bin)                                                   | rewrites relative imports in `dist/` to carry `.js`, for Node ESM                                              |
 
 ## Geometry is hardware, not layout
 
@@ -46,6 +46,20 @@ export const FRONT = {
 } as const;
 ```
 
+An app whose header is a different height lays out its own row grid, and reads
+rows off that instead of the default:
+
+```ts
+import { backRowGrid, rowY as gridRowY } from 'busybar-kit/device';
+
+export const BACK = { ...DEVICE_BACK, ...backRowGrid(16), nameX: 8 } as const;
+
+export const rowY = (index: number) => gridRowY(index, BACK);
+```
+
+`clipToWidth` takes the truncation mark as a fourth argument (`'.'` by
+default, `'..'` where names are cut often enough to want the emphasis).
+
 Colours work the same way — `BASE_COLORS` holds what every app needs, and the
 app adds its own semantics:
 
@@ -62,8 +76,13 @@ export const COLORS = {
 ## Config
 
 `loadBarConfig` resolves which Bar to talk to and over which transport, and
-warns about credentials that transport will ignore. It hands back the same
-env reader so an app's own settings collect warnings into one list:
+warns about credentials that transport will ignore. That is all it covers —
+render cadence and request timeouts are the app's own tempo (a speedrun timer
+wants 60ms frames where a match ticker is happy at 200), so they stay in the
+app's config with `DEFAULTS` / `LIMITS` as the values worth starting from.
+
+It hands back the same env reader, so an app's own settings collect their
+warnings into one list:
 
 ```ts
 import { loadBarConfig, loadEnvFile } from 'busybar-kit/config';
@@ -103,5 +122,3 @@ writeFileSync('front.png', renderFront(frontElements(frame)).scale(8).toPng());
 npm run check   # lint + typecheck + test
 npm run build   # tsc + .js extension fixup
 ```
-
-MIT.

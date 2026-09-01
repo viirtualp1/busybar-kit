@@ -68,7 +68,7 @@ export function glyph(character: string): readonly string[] {
   return GLYPHS[character.toUpperCase()] ?? FALLBACK;
 }
 
-export function textWidth(text: string, scale: number) {
+export function glyphTextWidth(text: string, scale: number) {
   if (text.length === 0) {
     return 0;
   }
@@ -76,6 +76,6 @@ export function textWidth(text: string, scale: number) {
   return (text.length * GLYPH_ADVANCE - 1) * scale;
 }
 
-export function textHeight(scale: number) {
+export function glyphTextHeight(scale: number) {
   return GLYPH_HEIGHT * scale;
 }

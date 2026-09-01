@@ -39,17 +39,26 @@ export const FONT_WIDTH: Record<BarFont, number> = {
   bold: 8,
 };
 
-export function clipToWidth(text: string, widthPx: number, font: BarFont) {
+export function textWidth(text: string, font: BarFont) {
+  return text.length * FONT_WIDTH[font];
+}
+
+export function clipToWidth(
+  text: string,
+  widthPx: number,
+  font: BarFont,
+  ellipsis = '.',
+) {
   const maxChars = Math.max(1, Math.floor(widthPx / FONT_WIDTH[font]));
   if (text.length <= maxChars) {
     return text;
   }
 
-  if (maxChars <= 2) {
+  if (maxChars <= 2 || maxChars <= ellipsis.length) {
     return text.slice(0, maxChars);
   }
 
-  return `${text.slice(0, maxChars - 1)}.`;
+  return `${text.slice(0, maxChars - ellipsis.length)}${ellipsis}`;
 }
 
 export function fittingChars(widthPx: number, glyphWidth: number) {
@@ -61,4 +70,20 @@ export type RowGeometry = { firstRowY: number; rowHeight: number };
 /** Top edge of back-panel row `index`. Apps with a different grid pass their own. */
 export function rowY(index: number, geometry: RowGeometry = BACK) {
   return geometry.firstRowY + index * geometry.rowHeight;
+}
+
+/**
+ * A back-panel row grid: how many rows of `rowHeight` fit below `firstRowY`.
+ * An app with a taller header (or none) starts its rows somewhere else.
+ */
+export function backRowGrid(
+  firstRowY: number,
+  rowHeight: number = BACK.rowHeight,
+  height: number = BACK.height,
+) {
+  return {
+    firstRowY,
+    rowHeight,
+    maxRows: Math.floor((height - firstRowY) / rowHeight),
+  } as const;
 }

@@ -14,7 +14,12 @@ export const LIMITS = {
   requestTimeoutMs: { min: 1000, max: 30_000 },
 } as const;
 
-/** How every app reaches the Bar. App-specific settings sit alongside this. */
+/**
+ * How an app reaches the Bar, and nothing else. Render cadence and request
+ * timeouts are the app's own tempo — a speedrun timer wants 60ms frames where
+ * a match ticker is happy at 200 — so they stay in the app's config, with
+ * `DEFAULTS` / `LIMITS` here as the values worth starting from.
+ */
 export type BarConfig = {
   busyAddr: string;
   isCloud: boolean;
@@ -22,8 +27,6 @@ export type BarConfig = {
   busyToken: string;
   busyHttpPassword: string;
   drawPriority: number;
-  frameMs: number;
-  requestTimeoutMs: number;
 };
 
 export function isCloudAddr(addr: string) {
@@ -94,12 +97,6 @@ export function loadBarConfig(
       busyToken: cloud ? token : '',
       busyHttpPassword: cloud || usb ? '' : httpPassword,
       drawPriority: number('DRAW_PRIORITY', DEFAULTS.drawPriority, LIMITS.drawPriority),
-      frameMs: number('FRAME_MS', DEFAULTS.frameMs, LIMITS.frameMs),
-      requestTimeoutMs: number(
-        'REQUEST_TIMEOUT_MS',
-        DEFAULTS.requestTimeoutMs,
-        LIMITS.requestTimeoutMs,
-      ),
     },
   };
 }

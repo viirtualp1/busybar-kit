@@ -1,6 +1,6 @@
 import { BACK, FRONT } from '../device';
 import type { AnyElement } from '../elements';
-import { GLYPH_HEIGHT, GLYPH_WIDTH, glyph, textWidth } from './font';
+import { GLYPH_HEIGHT, GLYPH_WIDTH, glyph, glyphTextWidth } from './font';
 import { Bitmap, parseColor, type Rgba } from './png';
 
 export type { AnyElement };
@@ -92,7 +92,7 @@ function drawText(
   }
 
   const scale = element.font === 'bold' ? 2 : 1;
-  const width = textWidth(text, scale);
+  const width = glyphTextWidth(text, scale);
   const { x, y } = anchor(
     element.align,
     element.x,
