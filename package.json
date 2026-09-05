@@ -1,6 +1,6 @@
 {
   "name": "busybar-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Shared building blocks for BUSY Bar apps: device geometry, colours, formatters, ticker text, error taxonomy and an offline PNG preview renderer",
   "author": "viirtualp1",
   "license": "MIT",
