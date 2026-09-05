@@ -1,5 +1,8 @@
 # busybar-kit
 
+> [!IMPORTANT]
+> **Unofficial community project.** Built and maintained by [@viirtualp1](https://github.com/viirtualp1), **not** an official Flipper Devices / BUSY product, and not affiliated with, endorsed by, or supported by them. "BUSY Bar" remains their trademark. For the real hardware and official apps, visit **[busy.app](https://busy.app/)**.
+
 Shared building blocks for [BUSY Bar](https://busy.bar) apps. Everything here is
 app-agnostic: screen geometry, the palette neutrals, formatters, ticker text,
 the Bar's error taxonomy, the connection half of a config, and an offline PNG
