@@ -29,6 +29,7 @@ npm install busybar-kit
 | `busybar-kit/ticker`                                                      | `paginate` / `pageAt` / `scrollAt` / `tickerLine`, and `EventTicker`                                           |
 | `busybar-kit/errors`                                                      | `BarApiError`, `toBarError`, `isLowPriority`, `isClientError`, `isForbidden`                                   |
 | `busybar-kit/config`                                                      | `loadEnvFile`, `envReader`, `loadBarConfig`                                                                    |
+| `busybar-kit/image`                                                       | `ditherToPanel` — a picture, in the back panel's 16 greys                                                      |
 | `busybar-kit/preview`                                                     | `renderFront` / `renderBack` / `Bitmap` — device-accurate PNGs with no hardware                                |
 | `busybar-kit/tsconfig.json`, `busybar-kit/eslint`, `busybar-kit/prettier` | the shared toolchain                                                                                           |
 | `busybar-fix-esm` (bin)                                                   | rewrites relative imports in `dist/` to carry `.js`, for Node ESM                                              |
@@ -105,6 +106,26 @@ export function loadConfig(env = process.env) {
   };
 }
 ```
+
+## Pictures
+
+The back panel has 16 greys and quantises whatever you upload to them, so a
+photo sent as-is comes back in bands. `ditherToPanel` does the quantising here,
+with error diffusion, which leaves every pixel already sitting on a level:
+
+```ts
+import { ditherToPanel } from 'busybar-kit/image';
+
+const cover = ditherToPanel(decodedRgba); // 80x80 Bitmap, panel-ready
+await bar.AssetsUpload({ application_name: 'app', file: 'art.png', data: cover.toPng() });
+```
+
+It takes pixels, not files. Which image decoder to pay for is the app's
+choice — the kit stays dependency-free.
+
+`Bitmap.fromRgba` wraps pixels from anywhere, and `bitmap.blit(other, x, y)`
+draws one into another: the raster below cannot follow an image element's path,
+so a preview composites the picture itself.
 
 ## Preview
 

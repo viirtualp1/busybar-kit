@@ -1,5 +1,6 @@
 import { BACK, FRONT } from '../device';
 import type { AnyElement } from '../elements';
+import { toShade } from '../image/dither';
 import { GLYPH_HEIGHT, GLYPH_WIDTH, glyph, glyphTextWidth } from './font';
 import { Bitmap, parseColor, type Rgba } from './png';
 
@@ -14,8 +15,6 @@ export function renderFront(elements: AnyElement[]): Bitmap {
 export function renderBack(elements: AnyElement[]): Bitmap {
   return render(elements, 'back', BACK.width, BACK.height, true);
 }
-
-const BACK_SHADES = 16;
 
 function render(
   elements: AnyElement[],
@@ -43,8 +42,9 @@ function render(
 
 function toBackShade(color: Rgba): Rgba {
   const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-  const step = 255 / (BACK_SHADES - 1);
-  const value = Math.round(Math.round(luminance / step) * step);
+  // Elements are flat colours, so nearest-level is right here: dithering a
+  // solid rectangle would only add noise. Pictures go through `ditherToPanel`.
+  const value = toShade(luminance);
 
   return { r: value, g: value, b: value, a: color.a };
 }

@@ -4,5 +4,6 @@ export * from './device';
 export * from './elements';
 export * from './errors';
 export * from './format';
+export * from './image/index';
 export * from './preview/index';
 export * from './ticker/index';

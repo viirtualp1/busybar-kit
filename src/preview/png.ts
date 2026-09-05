@@ -45,6 +45,33 @@ export class Bitmap {
     }
   }
 
+  /** Wraps raw RGBA that came from somewhere else — a decoder, a framebuffer. */
+  static fromRgba(width: number, height: number, rgba: Uint8Array): Bitmap {
+    const bitmap = new Bitmap(width, height);
+    bitmap.data.set(rgba.subarray(0, Math.min(rgba.length, bitmap.data.length)));
+
+    return bitmap;
+  }
+
+  /**
+   * Draws another bitmap into this one. The raster follows text and rectangles
+   * but cannot follow an image element's path, so a preview composites the
+   * picture the way the device will show it.
+   */
+  blit(source: Bitmap, offsetX: number, offsetY: number): void {
+    for (let y = 0; y < source.height; y += 1) {
+      for (let x = 0; x < source.width; x += 1) {
+        const offset = (y * source.width + x) * 4;
+        this.set(offsetX + x, offsetY + y, {
+          r: source.data[offset] ?? 0,
+          g: source.data[offset + 1] ?? 0,
+          b: source.data[offset + 2] ?? 0,
+          a: 255,
+        });
+      }
+    }
+  }
+
   scale(factor: number): Bitmap {
     const scaled = new Bitmap(this.width * factor, this.height * factor);
     for (let y = 0; y < this.height; y += 1) {
