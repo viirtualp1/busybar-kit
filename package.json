@@ -1,9 +1,13 @@
 {
   "name": "busybar-kit",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "Shared building blocks for BUSY Bar apps: device geometry, colours, formatters, ticker text, error taxonomy and an offline PNG preview renderer",
   "author": "viirtualp1",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/viirtualp1/busybar-kit/issues"
+  },
+  "homepage": "https://github.com/viirtualp1/busybar-kit#readme",
   "type": "module",
   "repository": {
     "type": "git",
@@ -34,7 +38,8 @@
     "dist",
     "configs",
     "scripts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "busy-bar",
