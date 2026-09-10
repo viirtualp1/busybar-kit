@@ -1,22 +1,33 @@
 /**
- * How an app describes its own settings, so something else can ask about them.
+ * How an app describes its own settings — as data, so anything can read it.
  *
- * The point is that the app owns the description. `busybar-flights` knows that
- * a route reads `SVO-JFK` and that a departure is a local time without a zone;
- * an editor that had to know those things for every app would need editing
- * every time a new app appeared. With a spec, installing a package is enough.
+ * The app owns the description. `busybar-flights` knows that a route reads
+ * `SVO-JFK` and that a departure is a local time with no zone; an editor that
+ * had to know that for every app would need editing every time a new app
+ * appeared. With a spec, installing a package is enough.
  *
- * Specs are modules rather than JSON because the useful parts — how one entry
- * reads in a picker, whether a value is acceptable — are functions. An app
- * points at its own with a `busybar.config` field in package.json:
+ * Everything here is JSON. Checks are rules rather than functions and a list
+ * entry's one-line summary is a template rather than a callback, so a browser
+ * or a Dart client can interpret a spec without running the app's JavaScript.
+ * An app points at its own from package.json:
  *
- *     "busybar": { "config": "./dist/config-spec.js" }
+ *     "busybar": {
+ *       "config": "./dist/config-spec.js",
+ *       "configJson": "./dist/config-spec.json"
+ *     }
  */
 
 export type FieldType =
   'text' | 'secret' | 'number' | 'boolean' | 'select' | 'datetime' | 'path';
 
 export type FieldOption = { value: string; label: string; hint?: string };
+
+/** Checks a client interprets. Never code — see `validateValue`. */
+export type ValidationRule =
+  | { kind: 'required'; message?: string }
+  | { kind: 'pattern'; pattern: string; message: string }
+  | { kind: 'integer'; min: number; max: number; message?: string }
+  | { kind: 'datetime'; format: 'local'; message?: string };
 
 export type ConfigField = {
   /** The env variable, or the key inside a record. */
@@ -34,9 +45,15 @@ export type ConfigField = {
   options?: readonly FieldOption[];
   /** What the app itself would do with the setting left out. */
   fallback?: string;
-  /** A message when the answer will not do, or nothing when it will. */
-  validate?: (value: string) => string | undefined;
+  rules?: ValidationRule[];
 };
+
+/**
+ * Whether a change lands without help. Declared by the app because only the
+ * app knows: dota re-reads its schedule on every poll, everything else reads
+ * its settings once, at startup.
+ */
+export type Reloads = 'live' | 'restart';
 
 /** A file of records you add to, edit and remove — flights, fixtures. */
 export type ListSection = {
@@ -52,11 +69,12 @@ export type ListSection = {
   at?: string;
   /** Settings that live beside the array in the same file, not in `.env`. */
   header?: ConfigField[];
-  /** What one entry looks like in the picker. */
-  summary: (entry: Record<string, string>) => string;
+  /** How one entry reads in a picker. See `renderSummary` for the syntax. */
+  summary: string;
   fields: ConfigField[];
   /** Shown instead of the picker when the file has nothing in it yet. */
   empty?: string;
+  reloads?: Reloads;
 };
 
 /** Plain settings, one key to a line. */
@@ -65,11 +83,14 @@ export type EnvSection = {
   file: string;
   title: string;
   fields: ConfigField[];
+  reloads?: Reloads;
 };
 
 export type ConfigSection = ListSection | EnvSection;
 
 export type AppConfigSpec = {
+  /** The contract version. A client refuses one it does not know. */
+  specVersion: number;
   /** The `application_name` the app draws with — the join with everything else. */
   name: string;
   /** One line about what the app is, for the app picker. */
@@ -77,51 +98,75 @@ export type AppConfigSpec = {
   sections: ConfigSection[];
 };
 
-/** Identity, for the types. Specs are data; this only saves the annotation. */
-export function defineConfigSpec(spec: AppConfigSpec): AppConfigSpec {
-  return spec;
-}
+export const SPEC_VERSION = 1;
 
-// --- Validators the apps kept writing for themselves -------------------------
-
-export function required(label: string) {
-  return (value: string) => (value.trim() ? undefined : `${label} is needed`);
-}
-
-export function integerIn(min: number, max: number) {
-  return (value: string) => {
-    if (!value.trim()) {
-      return undefined;
-    }
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
-      return 'a whole number, please';
-    }
-
-    return parsed < min || parsed > max ? `between ${min} and ${max}` : undefined;
-  };
-}
-
-export function matching(pattern: RegExp, message: string) {
-  return (value: string) =>
-    !value.trim() || pattern.test(value.trim()) ? undefined : message;
+/**
+ * Stamps the current version onto a spec, so an author cannot get it wrong and
+ * a client always has one to check.
+ */
+export function defineConfigSpec(
+  spec: Omit<AppConfigSpec, 'specVersion'>,
+): AppConfigSpec {
+  return { specVersion: SPEC_VERSION, ...spec };
 }
 
 /**
- * `2026-09-08 19:30` — a local time at the airport, with no zone on it, which
- * is how departure boards and boarding passes are written.
+ * Reads a spec that came from outside — a file, a package, an HTTP response.
+ * The version check is the whole point: once something else reads these, the
+ * shape is a contract, and a client that guesses at an unknown one is worse
+ * than a client that says which package needs updating.
  */
-const LOCAL_DATETIME = /^\d{4}-\d{2}-\d{2}[T ]\d{1,2}:\d{2}$/;
-
-export function localDateTime(value: string) {
-  if (!value.trim()) {
-    return undefined;
-  }
-  if (!LOCAL_DATETIME.test(value.trim())) {
-    return 'YYYY-MM-DD HH:MM';
+export function parseSpecJson(text: string, source = 'spec'): AppConfigSpec {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${source}: not valid JSON`, { cause: error });
   }
 
-  return Number.isNaN(Date.parse(value.trim().replace(' ', 'T')))
-    ? 'that is not a real date'
-    : undefined;
+  return parseSpec(raw, source);
 }
+
+export function parseSpec(raw: unknown, source = 'spec'): AppConfigSpec {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new Error(`${source}: a spec must be an object`);
+  }
+  const candidate = raw as Partial<AppConfigSpec>;
+
+  if (candidate.specVersion !== SPEC_VERSION) {
+    throw new Error(
+      `${source}: specVersion ${String(candidate.specVersion)} is not ${SPEC_VERSION} — update whichever side is older`,
+    );
+  }
+  if (typeof candidate.name !== 'string' || !candidate.name.trim()) {
+    throw new Error(`${source}: a spec needs the application name it configures`);
+  }
+  if (!Array.isArray(candidate.sections)) {
+    throw new Error(`${source}: a spec needs a sections array`);
+  }
+
+  return candidate as AppConfigSpec;
+}
+
+// --- Rules, written as data ---------------------------------------------------
+
+export function required(label?: string): ValidationRule {
+  return label
+    ? { kind: 'required', message: `${label} is needed` }
+    : { kind: 'required' };
+}
+
+export function integerIn(min: number, max: number, message?: string): ValidationRule {
+  return message ? { kind: 'integer', min, max, message } : { kind: 'integer', min, max };
+}
+
+export function matching(pattern: RegExp | string, message: string): ValidationRule {
+  return {
+    kind: 'pattern',
+    pattern: typeof pattern === 'string' ? pattern : pattern.source,
+    message,
+  };
+}
+
+/** `2026-09-08 19:30` — a local time at the airport, with no zone on it. */
+export const localDateTime: ValidationRule = { kind: 'datetime', format: 'local' };

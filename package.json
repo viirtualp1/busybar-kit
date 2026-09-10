@@ -1,6 +1,6 @@
 {
   "name": "busybar-kit",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Shared building blocks for BUSY Bar apps: device geometry, colours, formatters, ticker text, error taxonomy and an offline PNG preview renderer",
   "author": "viirtualp1",
   "license": "MIT",
@@ -20,6 +20,8 @@
     "./colors": "./dist/colors.js",
     "./config": "./dist/config/index.js",
     "./config-spec": "./dist/config-spec.js",
+    "./rules": "./dist/rules.js",
+    "./summary": "./dist/summary.js",
     "./device": "./dist/device.js",
     "./elements": "./dist/elements.js",
     "./errors": "./dist/errors.js",
@@ -34,7 +36,8 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "busybar-fix-esm": "scripts/fix-esm-extensions.mjs"
+    "busybar-fix-esm": "scripts/fix-esm-extensions.mjs",
+    "busybar-emit-spec": "scripts/emit-config-spec.mjs"
   },
   "files": [
     "dist",
