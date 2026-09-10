@@ -90,7 +90,10 @@ function drawRectangle(
   const { x, y } = anchor(element.align, element.x, element.y, width, height);
   // A radius of half the shorter side is a circle, which is how the device is
   // asked for one. Clamped, because a larger radius has nowhere left to go.
-  const radius = Math.max(0, Math.min(element.radius ?? 0, Math.floor(Math.min(width, height) / 2)));
+  const radius = Math.max(
+    0,
+    Math.min(element.radius ?? 0, Math.floor(Math.min(width, height) / 2)),
+  );
 
   if (element.fill !== 'none') {
     const fill = shade(parseColor(element.fill_colors?.[0] ?? '#00000000'), greyscale);
@@ -130,7 +133,13 @@ function paint(
       }
       if (
         thickness > 0 &&
-        within(column - thickness, row - thickness, width - thickness * 2, height - thickness * 2, Math.max(0, radius - thickness))
+        within(
+          column - thickness,
+          row - thickness,
+          width - thickness * 2,
+          height - thickness * 2,
+          Math.max(0, radius - thickness),
+        )
       ) {
         continue;
       }
@@ -155,8 +164,18 @@ function within(
   }
 
   // Only the four corner squares are curved; everything else is a rectangle.
-  const dx = column < radius ? radius - column : column >= width - radius ? column - (width - radius) + 1 : 0;
-  const dy = row < radius ? radius - row : row >= height - radius ? row - (height - radius) + 1 : 0;
+  const dx =
+    column < radius
+      ? radius - column
+      : column >= width - radius
+        ? column - (width - radius) + 1
+        : 0;
+  const dy =
+    row < radius
+      ? radius - row
+      : row >= height - radius
+        ? row - (height - radius) + 1
+        : 0;
   if (dx === 0 || dy === 0) {
     return true;
   }
