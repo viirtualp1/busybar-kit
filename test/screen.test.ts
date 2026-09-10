@@ -24,19 +24,21 @@ function pixel(bitmap: { data: Uint8Array; width: number }, x: number, y: number
   ];
 }
 
-test('the front is three bytes a pixel, in RGB order', () => {
+test('the front is three bytes a pixel, in BGR order', () => {
+  // Sent as blue, green, red — so this is the colour rgb(50, 100, 200).
   const bytes = frontBytes(() => [200, 100, 50]);
   const bitmap = decodeScreenFrame(bytes, 0);
 
   assert.equal(bitmap.width, FRONT.width);
   assert.equal(bitmap.height, FRONT.height);
-  assert.deepEqual(pixel(bitmap, 0, 0), [200, 100, 50, 255]);
+  assert.deepEqual(pixel(bitmap, 0, 0), [50, 100, 200, 255]);
 });
 
 test('front pixels run left to right, then down', () => {
-  // A single red pixel at (1, 0) and a single green one at (0, 1).
+  // A single red pixel at (1, 0) and a single green one at (0, 1), written the
+  // way the device writes them: blue first.
   const bytes = Buffer.alloc(SCREEN[0].bytes);
-  bytes.set([255, 0, 0], 1 * 3);
+  bytes.set([0, 0, 255], 1 * 3);
   bytes.set([0, 255, 0], FRONT.width * 3);
   const bitmap = decodeScreenFrame(bytes, 0);
 
@@ -44,10 +46,10 @@ test('front pixels run left to right, then down', () => {
   assert.deepEqual(pixel(bitmap, 0, 1), [0, 255, 0, 255]);
 });
 
-test('the back is four bits a pixel, the left one in the high nibble', () => {
+test('the back is four bits a pixel, the left one in the low nibble', () => {
   const bytes = Buffer.alloc(SCREEN[1].bytes);
-  // 0xF0: the first pixel white, the second black.
-  bytes[0] = 0xf0;
+  // 0x0F: the first pixel white, the second black.
+  bytes[0] = 0x0f;
   const bitmap = decodeScreenFrame(bytes, 1);
 
   assert.equal(bitmap.width, BACK.width);
@@ -58,7 +60,7 @@ test('the back is four bits a pixel, the left one in the high nibble', () => {
 
 test('the back is grey, and every level lands where it should', () => {
   const bytes = Buffer.alloc(SCREEN[1].bytes);
-  bytes[0] = 0x80; // level 8 of 15
+  bytes[0] = 0x08; // level 8 of 15, in the low nibble
   const [r, g, b] = decodeScreenFrame(bytes, 1).data;
 
   assert.equal(r, g);
@@ -75,7 +77,7 @@ test('base64 is decoded, because that is what the body actually is', () => {
   const bytes = frontBytes(() => [10, 20, 30]);
   const bitmap = decodeScreenFrame(bytes.toString('base64'), 0);
 
-  assert.deepEqual(pixel(bitmap, 0, 0), [10, 20, 30, 255]);
+  assert.deepEqual(pixel(bitmap, 0, 0), [30, 20, 10, 255]);
 });
 
 test('a short frame is refused with what was missing, not drawn as garbage', () => {

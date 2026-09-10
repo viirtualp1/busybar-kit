@@ -11,9 +11,14 @@ import { Bitmap } from './preview/png';
  *
  * The two panels are not the same picture, either:
  *
- * - **front**, 72×16, three bytes a pixel — RGB, no alpha and no padding.
- * - **back**, 160×80, half a byte a pixel — four bits of grey, high nibble
- *   first, which is the sixteen levels the panel actually has.
+ * - **front**, 72×16, three bytes a pixel — **BGR**, no alpha and no padding.
+ *   Read as RGB it looks almost right, which is the trap: only reds and blues
+ *   swap, so a photograph passes and a red progress bar comes out blue.
+ * - **back**, 160×80, half a byte a pixel — four bits of grey, **low nibble
+ *   first**, which is the sixteen levels the panel actually has.
+ *
+ * Both orders are the ones busy-lib converts from in `bgrToRgba` and
+ * `convertL4toRGBA`; they are not guesses.
  */
 export type Display = 0 | 1;
 
@@ -46,9 +51,9 @@ function front(bytes: Buffer): Bitmap {
   for (let pixel = 0; pixel < width * height; pixel += 1) {
     const offset = pixel * 3;
     bitmap.set(pixel % width, Math.floor(pixel / width), {
-      r: bytes[offset] ?? 0,
+      r: bytes[offset + 2] ?? 0,
       g: bytes[offset + 1] ?? 0,
-      b: bytes[offset + 2] ?? 0,
+      b: bytes[offset] ?? 0,
       a: 255,
     });
   }
@@ -62,8 +67,10 @@ function back(bytes: Buffer): Bitmap {
 
   for (let pixel = 0; pixel < width * height; pixel += 1) {
     const byte = bytes[pixel >> 1] ?? 0;
-    // Two pixels to a byte, the left-hand one in the high nibble.
-    const level = pixel % 2 === 0 ? (byte >> 4) & 0xf : byte & 0xf;
+    // Two pixels to a byte, the left-hand one in the LOW nibble. The other way
+    // round swaps every neighbouring pair, which leaves photographs looking
+    // fine and text looking shredded.
+    const level = pixel % 2 === 0 ? byte & 0xf : (byte >> 4) & 0xf;
     const value = Math.round(level * BACK_STEP);
     bitmap.set(pixel % width, Math.floor(pixel / width), {
       r: value,
