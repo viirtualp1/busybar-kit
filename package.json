@@ -1,6 +1,6 @@
 {
   "name": "busybar-kit",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Shared building blocks for BUSY Bar apps: device geometry, colours, formatters, ticker text, error taxonomy and an offline PNG preview renderer",
   "author": "viirtualp1",
   "license": "MIT",
@@ -30,6 +30,7 @@
     "./input": "./dist/input/index.js",
     "./preview": "./dist/preview/index.js",
     "./profile": "./dist/profile.js",
+    "./screen": "./dist/screen.js",
     "./ticker": "./dist/ticker/index.js",
     "./tsconfig.json": "./configs/tsconfig.base.json",
     "./eslint": "./configs/eslint.config.js",
@@ -60,6 +61,7 @@
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/fix-esm-extensions.mjs",
+    "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

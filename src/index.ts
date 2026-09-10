@@ -11,4 +11,5 @@ export * from './image/index';
 export * from './input/index';
 export * from './preview/index';
 export * from './profile';
+export * from './screen';
 export * from './ticker/index';
