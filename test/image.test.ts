@@ -7,6 +7,7 @@ import {
   ditherToShades,
   SHADES,
   toGreyTile,
+  toRgbaTile,
   toShade,
   type RgbaImage,
 } from '../src/image/index';
@@ -131,3 +132,50 @@ test('a bitmap can be built from raw RGBA and drawn into another', () => {
   assert.equal(at(2, 2), 255);
   assert.equal(at(0, 0), 0, 'outside the blit is untouched');
 });
+
+test('a colour tile keeps the hue the grey one throws away', () => {
+  const red = colour(8, 8, [220, 40, 40, 255]);
+  const tile = toRgbaTile(red, 4);
+
+  assert.equal(tile.width, 4);
+  assert.equal(tile.data.length, 4 * 4 * 4);
+  assert.equal(tile.data[0], 220);
+  assert.equal(tile.data[1], 40);
+  assert.equal(tile.data[2], 40);
+  assert.equal(tile.data[3], 255);
+});
+
+test('halves average in linear light, not in bytes', () => {
+  // Half black, half white. The gamma-encoded midpoint is 128; the linear one
+  // — the correct one — lands near 188.
+  // Square, so nothing is cropped away: two black pixels and two white ones.
+  const chequer = new Uint8Array(2 * 2 * 4);
+  chequer.set([0, 0, 0, 255, 255, 255, 255, 255], 0);
+  chequer.set([255, 255, 255, 255, 0, 0, 0, 255], 8);
+  const image: RgbaImage = { width: 2, height: 2, data: chequer };
+  const grey = toRgbaTile(image, 1).data[0] ?? 0;
+
+  assert.ok(grey > 180 && grey < 195, `expected a linear midpoint, got ${grey}`);
+});
+
+test('a non-square picture is centre-cropped before it is scaled', () => {
+  // A wide strip with a red centre and blue ends: cropping to a square should
+  // keep the red and lose the blue entirely.
+  const image = {
+    width: 3,
+    height: 1,
+    data: new Uint8Array([0, 0, 255, 255, 255, 0, 0, 255, 0, 0, 255, 255]),
+  };
+  const tile = toRgbaTile(image, 1);
+
+  assert.equal(tile.data[0], 255);
+  assert.equal(tile.data[2], 0);
+});
+function colour(width: number, height: number, rgba: number[]): RgbaImage {
+  const data = new Uint8Array(width * height * 4);
+  for (let offset = 0; offset < data.length; offset += 4) {
+    data.set(rgba, offset);
+  }
+
+  return { width, height, data };
+}

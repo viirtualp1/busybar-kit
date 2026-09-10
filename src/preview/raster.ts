@@ -16,6 +16,21 @@ export function renderBack(elements: AnyElement[]): Bitmap {
   return render(elements, 'back', BACK.width, BACK.height, true);
 }
 
+/**
+ * Draws onto a panel that already has something on it.
+ *
+ * The device layers elements in the order they arrive, and an app that puts a
+ * picture under an outline needs the preview to agree. `renderFront` cannot,
+ * having made the bitmap itself; this can.
+ */
+export function renderOnto(
+  bitmap: Bitmap,
+  elements: AnyElement[],
+  display: 'front' | 'back',
+): Bitmap {
+  return paintAll(bitmap, elements, display, display === 'back');
+}
+
 function render(
   elements: AnyElement[],
   display: 'front' | 'back',
@@ -23,8 +38,20 @@ function render(
   height: number,
   greyscale: boolean,
 ): Bitmap {
-  const bitmap = new Bitmap(width, height, shade(OFF_PIXEL, greyscale));
+  return paintAll(
+    new Bitmap(width, height, shade(OFF_PIXEL, greyscale)),
+    elements,
+    display,
+    greyscale,
+  );
+}
 
+function paintAll(
+  bitmap: Bitmap,
+  elements: AnyElement[],
+  display: 'front' | 'back',
+  greyscale: boolean,
+): Bitmap {
   for (const element of elements) {
     if (element.display !== display) {
       continue;
@@ -61,10 +88,13 @@ function drawRectangle(
   const width = element.width ?? 0;
   const height = element.height ?? 0;
   const { x, y } = anchor(element.align, element.x, element.y, width, height);
+  // A radius of half the shorter side is a circle, which is how the device is
+  // asked for one. Clamped, because a larger radius has nowhere left to go.
+  const radius = Math.max(0, Math.min(element.radius ?? 0, Math.floor(Math.min(width, height) / 2)));
 
   if (element.fill !== 'none') {
     const fill = shade(parseColor(element.fill_colors?.[0] ?? '#00000000'), greyscale);
-    bitmap.fillRect(x, y, width, height, fill);
+    paint(bitmap, x, y, width, height, radius, 0, fill);
   }
 
   const borderWidth = element.border_width ?? 0;
@@ -72,12 +102,66 @@ function drawRectangle(
     return;
   }
   const border = shade(parseColor(element.border_color ?? '#00000000'), greyscale);
-  for (let ring = 0; ring < borderWidth; ring += 1) {
-    bitmap.fillRect(x + ring, y + ring, width - ring * 2, 1, border);
-    bitmap.fillRect(x + ring, y + height - 1 - ring, width - ring * 2, 1, border);
-    bitmap.fillRect(x + ring, y + ring, 1, height - ring * 2, border);
-    bitmap.fillRect(x + width - 1 - ring, y + ring, 1, height - ring * 2, border);
+  paint(bitmap, x, y, width, height, radius, borderWidth, border);
+}
+
+/**
+ * A rounded rectangle, filled or as an outline `thickness` pixels wide.
+ *
+ * Corners are measured from the centre of the corner's arc, so a radius of
+ * half the side collapses the straight edges entirely and what is left is a
+ * circle. `thickness` of zero fills; anything else keeps the ring between the
+ * outer shape and the same shape inset by that much.
+ */
+function paint(
+  bitmap: Bitmap,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  thickness: number,
+  color: Rgba,
+) {
+  for (let row = 0; row < height; row += 1) {
+    for (let column = 0; column < width; column += 1) {
+      if (!within(column, row, width, height, radius)) {
+        continue;
+      }
+      if (
+        thickness > 0 &&
+        within(column - thickness, row - thickness, width - thickness * 2, height - thickness * 2, Math.max(0, radius - thickness))
+      ) {
+        continue;
+      }
+      bitmap.set(x + column, y + row, color);
+    }
   }
+}
+
+/** Whether a pixel is inside a rounded rectangle of this size. */
+function within(
+  column: number,
+  row: number,
+  width: number,
+  height: number,
+  radius: number,
+): boolean {
+  if (column < 0 || row < 0 || column >= width || row >= height) {
+    return false;
+  }
+  if (radius <= 0) {
+    return true;
+  }
+
+  // Only the four corner squares are curved; everything else is a rectangle.
+  const dx = column < radius ? radius - column : column >= width - radius ? column - (width - radius) + 1 : 0;
+  const dy = row < radius ? radius - row : row >= height - radius ? row - (height - radius) + 1 : 0;
+  if (dx === 0 || dy === 0) {
+    return true;
+  }
+
+  return Math.hypot(dx, dy) <= radius + 0.5;
 }
 
 function drawText(

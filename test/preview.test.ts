@@ -104,3 +104,87 @@ test('scaling keeps pixels square and countable', () => {
   assert.equal(pixel(scaled, 0, 0).r, 0);
   assert.equal(pixel(scaled, 7, 3).r, 255);
 });
+
+test('a radius of half the side draws a circle, not a box', () => {
+  const bitmap = renderFront([
+    {
+      id: 'ring',
+      type: 'rectangle',
+      display: 'front',
+      align: 'top_left',
+      x: 0,
+      y: 0,
+      width: 14,
+      height: 14,
+      radius: 7,
+      fill: 'none',
+      fill_colors: ['#00000000'],
+      border_width: 1,
+      border_color: '#FFFFFFFF',
+      timeout: 0,
+    },
+  ]);
+
+  const lit = (x: number, y: number) => (bitmap.data[(y * bitmap.width + x) * 4] ?? 0) > 100;
+
+  assert.ok(lit(7, 0), 'the top of the circle is drawn');
+  assert.ok(lit(0, 7), 'and its left');
+  assert.equal(lit(0, 0), false, 'but the corner is cut away');
+  assert.equal(lit(13, 13), false, 'on every side');
+  assert.equal(lit(7, 7), false, 'and the middle stays empty — it is an outline');
+});
+
+test('a rectangle with no radius still has square corners', () => {
+  const bitmap = renderFront([
+    {
+      id: 'box',
+      type: 'rectangle',
+      display: 'front',
+      align: 'top_left',
+      x: 0,
+      y: 0,
+      width: 10,
+      height: 10,
+      fill: 'solid',
+      fill_colors: ['#FFFFFFFF'],
+      border_width: 0,
+      border_color: '#00000000',
+      timeout: 0,
+    },
+  ]);
+
+  assert.ok((bitmap.data[0] ?? 0) > 100, 'the top-left pixel is filled');
+});
+
+test('a masked source lets the panel behind it show through', () => {
+  const panel = new Bitmap(4, 4, { r: 0, g: 0, b: 200, a: 255 });
+  const stamp = new Bitmap(2, 2, { r: 0, g: 0, b: 0, a: 0 });
+  stamp.set(0, 0, { r: 255, g: 0, b: 0, a: 255 });
+
+  panel.blit(stamp, 0, 0);
+
+  const at = (x: number, y: number) => {
+    const offset = (y * panel.width + x) * 4;
+
+    return [panel.data[offset], panel.data[offset + 1], panel.data[offset + 2]];
+  };
+
+  assert.deepEqual(at(0, 0), [255, 0, 0], 'the opaque pixel landed');
+  assert.deepEqual(at(1, 1), [0, 0, 200], 'the clear one left the panel alone');
+});
+
+test('a half-covered pixel over nothing stays half-covered', () => {
+  const bitmap = new Bitmap(1, 1, { r: 0, g: 0, b: 0, a: 0 });
+  bitmap.set(0, 0, { r: 255, g: 255, b: 255, a: 128 });
+
+  assert.equal(bitmap.data[3], 128, 'the coverage is kept, not forced opaque');
+  assert.equal(bitmap.data[0], 255, 'and the colour is not dragged towards black');
+});
+
+test('a half-covered pixel over an opaque one blends and stays opaque', () => {
+  const bitmap = new Bitmap(1, 1, { r: 0, g: 0, b: 0, a: 255 });
+  bitmap.set(0, 0, { r: 255, g: 255, b: 255, a: 128 });
+
+  assert.equal(bitmap.data[3], 255);
+  assert.ok((bitmap.data[0] ?? 0) > 120 && (bitmap.data[0] ?? 0) < 135, 'about halfway');
+});

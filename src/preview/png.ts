@@ -28,13 +28,27 @@ export class Bitmap {
       this.data[offset + 3] = 255;
       return;
     }
-    const alpha = color.a / 255;
+    // Source-over, including the alpha channel. Onto an opaque pixel this is
+    // the plain blend it always was, since the result is opaque either way.
+    // Onto a transparent one it is not: forcing the result opaque there turns
+    // a soft edge into a hard dark fringe, which is what a mask's edge is.
+    const source = color.a / 255;
+    const destination = (this.data[offset + 3] ?? 0) / 255;
+    const out = source + destination * (1 - source);
+    if (out <= 0) {
+      this.data[offset] = 0;
+      this.data[offset + 1] = 0;
+      this.data[offset + 2] = 0;
+      this.data[offset + 3] = 0;
+      return;
+    }
+
     const blend = (channel: number, value: number) =>
-      Math.round(value * alpha + channel * (1 - alpha));
+      Math.round((value * source + channel * destination * (1 - source)) / out);
     this.data[offset] = blend(this.data[offset] ?? 0, color.r);
     this.data[offset + 1] = blend(this.data[offset + 1] ?? 0, color.g);
     this.data[offset + 2] = blend(this.data[offset + 2] ?? 0, color.b);
-    this.data[offset + 3] = 255;
+    this.data[offset + 3] = Math.round(out * 255);
   }
 
   fillRect(x: number, y: number, width: number, height: number, color: Rgba) {
@@ -66,7 +80,10 @@ export class Bitmap {
           r: source.data[offset] ?? 0,
           g: source.data[offset + 1] ?? 0,
           b: source.data[offset + 2] ?? 0,
-          a: 255,
+          // Carried through rather than forced opaque: a masked source — a
+          // circle cut out of a square, say — has to leave what is behind it
+          // showing, and `set` already blends.
+          a: source.data[offset + 3] ?? 255,
         });
       }
     }

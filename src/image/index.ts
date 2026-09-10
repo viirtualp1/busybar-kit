@@ -9,6 +9,8 @@ import {
 } from './dither';
 
 export * from './dither';
+export * from './png';
+export * from './resize';
 
 export type PanelImageOptions = {
   /** Square side in pixels; the panel's own height by default. */
@@ -22,8 +24,9 @@ export type PanelImageOptions = {
  * A picture, ready for the back panel: square, grey, dithered to the levels the
  * device can show. `toPng()` on the result is what `AssetsUpload` wants.
  *
- * Decoding is deliberately not here — JPEG and PNG decoders are a dependency,
- * and which one an app pays for is the app's business. Hand this the pixels.
+ * PNG arrives decoded by `decodePng` next door, which costs nothing because it
+ * is hand-rolled. JPEG stays the app's business: a decoder for it is a real
+ * dependency, and which one an app pays for is not this package's call.
  */
 export function ditherToPanel(image: RgbaImage, options: PanelImageOptions = {}): Bitmap {
   const size = options.size ?? BACK.height;

@@ -8,6 +8,7 @@ export * from './elements';
 export * from './errors';
 export * from './format';
 export * from './image/index';
+export * from './input/index';
 export * from './preview/index';
 export * from './profile';
 export * from './ticker/index';

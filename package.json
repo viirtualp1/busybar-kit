@@ -1,6 +1,6 @@
 {
   "name": "busybar-kit",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Shared building blocks for BUSY Bar apps: device geometry, colours, formatters, ticker text, error taxonomy and an offline PNG preview renderer",
   "author": "viirtualp1",
   "license": "MIT",
@@ -27,6 +27,7 @@
     "./errors": "./dist/errors.js",
     "./format": "./dist/format.js",
     "./image": "./dist/image/index.js",
+    "./input": "./dist/input/index.js",
     "./preview": "./dist/preview/index.js",
     "./profile": "./dist/profile.js",
     "./ticker": "./dist/ticker/index.js",
